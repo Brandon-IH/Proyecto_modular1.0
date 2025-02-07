@@ -1,0 +1,271 @@
+<!DOCTYPE html> <!-- Define el tipo de documento como HTML5 -->
+<html lang="en"> <!-- Define el lenguaje del documento como inglés -->
+<head>
+    <meta charset="UTF-8"> <!-- Define la codificación de caracteres a UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Hace la página responsiva en dispositivos móviles -->
+    <title>Admin - Servicios Médicos</title> <!-- Título de la página que aparece en la pestaña del navegador -->
+    <link rel="stylesheet" href="style.css"> <!-- Vincula el archivo CSS para el estilo de la página -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"> <!-- Pre-conecta a Google Fonts -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> <!-- Permite cargar fuentes desde Google Fonts con CORS -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap" rel="stylesheet"> <!-- Carga una fuente desde Google Fonts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Carga la librería Chart.js para graficar -->
+
+</head>
+<body>
+    <!-- Menú Derecho -->
+    <aside class="side-menu"> 
+        <img class="logo_cucei" src="img/cucei.png" alt="Logo de CUCEI"> <!-- Logo de CUCEI -->
+        <hr> <!-- Línea horizontal -->
+        <ul>
+            <li><a class="menu-item" id="salud" href="#enfermeri.html"><img class="logo" src="img/salud.png" alt="">Enfermería</a></li>
+            <li><a class="menu-item" id="nutriologia" href="#nutriologia"><img class="logo" src="img/dieta.png" alt="">Nutriología</a></li>
+            <li><a class="menu-item" id="psicologia" href="#psicologia"><img class="logo" src="img/salud-mental.png" alt="">Psicología</a></li>
+            <li><a class="menu-item" id="admin" href="index.html"><img class="logo" src="img/pagina-principal.png" alt="">Dashboard</a></li>
+        </ul>
+    </aside>
+    <main>
+       
+        <nav class="top-menu"> 
+            <button id="button" class="toggle-menu" onclick="toggleSideMenu()">☰</button>
+            <ul>
+                <li><a href="#inicio">Inicio</a></li> <!-- Enlace a la página de inicio -->
+                <li><a href="#servicios">Servicios</a></li> <!-- Enlace a la sección de servicios -->
+                <li><a href="#contacto">Contacto</a></li> <!-- Enlace a la sección de contacto -->
+            </ul>
+            
+        </nav>
+
+        <!-- Indicador de disponibilidad de la enfermería -->
+        <div class="section_div">
+            <section>
+                <h1>Dashboard</h1> <!-- Título de la sección -->
+            </section>
+        </div>
+        
+        <section id="dashboard">
+            <div class="dashboard_section">
+                <img class="img_dashboard" src="img/universidad (1).png" alt="Logo del departamento"> <!-- Imagen representativa del departamento -->
+                <p class="titulo_section_dashboard">Departamentos</p> <!-- Título de la sección -->
+                <p class="num_dashboard">3</p> <!-- Número de departamentos -->
+            </div>
+
+            <div class="dashboard_section">
+                <img class="img_dashboard" src="img/paciente (1).png" alt="Logo del departamento">
+                <p class="titulo_section_dashboard">Estudiantes</p> <!-- Título de la sección -->
+                <p class="num_dashboard">3</p> <!-- Número de estudiantes -->
+            </div>
+
+            <div class="dashboard_section">
+                <img class="img_dashboard" src="img/retroalimentacion-positiva (1).png" alt="Logo del departamento">
+                <p class="titulo_section_dashboard">Comentarios</p> <!-- Título de la sección -->
+                <p class="num_dashboard" id="total-comments">0</p> <!-- Muestra el número total de comentarios -->
+            </div>
+
+            <div class="dashboard_section">
+                <img class="img_dashboard" src="img/cita (1).png" alt="Logo del departamento">
+                <p class="titulo_section_dashboard">Citas</p> <!-- Título de la sección -->
+                <p class="num_dashboard">17</p> <!-- Número de citas -->
+            </div>
+
+            <div class="dashboard_section">
+                <img class="img_dashboard" src="img/marca-de-verificacion.png" alt="Logo del departamento">
+                <section id="availability">
+                    <p class="titulo_section_dashboard" id="status-text">Cargando estado...</p> <!-- Texto inicial de estado -->
+                    <div id="status">
+                        <span id="status-indicator"></span> <!-- Indicador de disponibilidad -->
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <!-- Contenedor de gráfica y citas -->
+        <div class="contenedor_grafica_citas">
+            <!-- Gráfica de comentarios -->
+            <section class="contenedor_grafica">
+                <canvas id="commentsGraph"></canvas> <!--Área donde se dibujará la gráfica -->
+            </section>
+
+            <!-- Sección de Citas -->
+            <section class="citas">
+                <h2>Citas del Día</h2>
+                <ul id="lista-citas">
+                    <!-- Aquí se agregarán dinámicamente las citas -->
+                </ul>
+            </section>
+        </div>
+
+        
+    </main>
+    <footer>
+        <div class="copyright">
+            <div class="text_copyright">
+                <p>© 2025 Universidad de Guadalajara - Centro Universitario de Ciencias Exactas e Ingenierías (CUCEI)</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Conexión al servidor WebSocket
+        const socket = new WebSocket("ws://localhost:8765"); // Crea una conexión WebSocket con el servidor
+
+        socket.onmessage = function(event) { // Función que maneja los mensajes recibidos del servidor
+            const data = JSON.parse(event.data); // Parsea los datos del mensaje
+
+            // Actualizar la gráfica con los nuevos datos
+            updateChart(data);
+
+            // Actualizar el número total de comentarios
+            updateTotalComments(data.TotalComentarios);
+        };
+
+        socket.onerror = function(error) { // Función que maneja errores en la conexión WebSocket
+            console.error("Error de WebSocket: ", error);
+        };
+
+        socket.onopen = function() { // Función que se ejecuta cuando la conexión WebSocket se establece
+            console.log("Conexión WebSocket establecida.");
+        };
+
+        socket.onclose = function() { // Función que se ejecuta cuando la conexión WebSocket se cierra
+            console.log("Conexión WebSocket cerrada.");
+        };
+
+        // Función para actualizar la gráfica
+        function updateChart(data) {
+            commentsChart.data.datasets[0].data = [
+                data.Positivos, // Datos de comentarios positivos
+                data.Neutrales, // Datos de comentarios neutrales
+                data.Negativos // Datos de comentarios negativos
+            ];
+            commentsChart.update(); // Actualiza la gráfica con los nuevos datos
+        }
+
+        // Función para actualizar el total de comentarios
+        function updateTotalComments(total) {
+            const totalCommentsElement = document.getElementById('total-comments');
+            totalCommentsElement.textContent = total; // Actualiza el número total de comentarios en la página
+        }
+
+        window.addEventListener('load', function() {
+            var currentPath = window.location.pathname; // Obtiene la URL de la página actual
+            var menuItems = document.querySelectorAll('.side-menu a'); // Obtiene todos los enlaces en el menú lateral
+    
+            // Recorre todos los enlaces
+            menuItems.forEach(function(item) {
+             // Si el enlace corresponde a la página actual, agrega la clase 'active'
+             if (currentPath.includes(item.getAttribute('href'))) {
+                item.classList.add('active');
+                }
+            });
+        });
+
+        function toggleSideMenu() {
+            const sideMenu = document.querySelector('.side-menu');
+            const mainContent = document.querySelector('main');
+
+            sideMenu.classList.toggle('hidden'); // Oculta o muestra el menú
+            mainContent.classList.toggle('main-full'); // Expande o reduce el main
+        }
+
+        // Función para cargar las citas del día
+        function cargarCitas() {
+            // Simulación de citas (puedes reemplazarlo con datos de tu backend)
+            const citasHoy = [
+                { hora: "10:00 AM", paciente: "Juan Pérez", tipo: "Psicología" },
+                { hora: "11:30 AM", paciente: "María López", tipo: "Nutrición" },
+                { hora: "2:00 PM", paciente: "Carlos Ramírez", tipo: "Enfermería" },
+                { hora: "10:00 AM", paciente: "Juan Pérez", tipo: "Psicología" },
+                { hora: "11:30 AM", paciente: "María López", tipo: "Nutrición" },
+                { hora: "2:00 PM", paciente: "Carlos Ramírez", tipo: "Enfermería" },
+                { hora: "10:00 AM", paciente: "Juan Pérez", tipo: "Psicología" },
+                { hora: "11:30 AM", paciente: "María López", tipo: "Nutrición" },
+                { hora: "2:00 PM", paciente: "Carlos Ramírez", tipo: "Enfermería" }
+            ];
+
+            const listaCitas = document.getElementById('lista-citas');
+            listaCitas.innerHTML = ""; // Limpia la lista antes de llenarla
+
+            if (citasHoy.length === 0) {
+                listaCitas.innerHTML = "<li>No hay citas para hoy.</li>";
+            } else {
+                citasHoy.forEach(cita => {
+                    const li = document.createElement('li');
+                    li.textContent = `${cita.hora} - ${cita.paciente} (${cita.tipo})`;
+                    listaCitas.appendChild(li);
+                });
+            }
+        }
+
+        // Llamar a la función cuando cargue la página
+        window.onload = function() {
+            cargarCitas();
+        };
+
+
+        // Configuración del horario de la enfermería
+        const openingHour = 2; // Hora de apertura (8:00 AM)
+        const closingHour = 19; // Hora de cierre (6:00 PM)
+
+        function updateNursingStatus() { // Función que actualiza el estado de la enfermería
+            const now = new Date(); // Obtiene la fecha y hora actual
+            const currentHour = now.getHours(); // Obtiene la hora actual
+            const statusIndicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
+
+            if (currentHour >= openingHour && currentHour < closingHour) { // Verifica si está en horario de apertura
+                statusIndicator.style.backgroundColor = 'green'; // Cambia el indicador a verde si está abierto
+                statusText.textContent = 'Abierto'; // Muestra el estado como 'Abierto'
+            } else {
+                statusIndicator.style.backgroundColor = 'red'; // Cambia el indicador a rojo si está cerrado
+                statusText.textContent = 'Cerrado'; // Muestra el estado como 'Cerrado'
+            }
+        }
+
+        // Configuración de la gráfica
+        const ctx = document.getElementById('commentsGraph').getContext('2d'); // Obtiene el contexto del canvas para la gráfica
+        const commentsChart = new Chart(ctx, { // Crea una nueva gráfica con Chart.js
+            type: 'pie', // Tipo de gráfica (circular)
+            data: {
+                labels: ['Buenos', 'Regulares', 'Malos'], // Etiquetas para los datos
+                datasets: [{
+                    label: 'Distribución de Comentarios',
+                    data: [1, 1, 1], // Datos iniciales para la gráfica
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.6)', // Color de fondo para comentarios positivos
+                        'rgba(255, 206, 86, 0.6)', // Color de fondo para comentarios neutrales
+                        'rgba(255, 99, 132, 0.6)'  // Color de fondo para comentarios negativos
+                    ],
+                    borderColor: [
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(255, 99, 132, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true, // Hace que la gráfica sea responsiva
+                maintainAspectRatio: false,  // Permite ajustar el tamaño del canvas sin mantener la proporción fija
+                plugins: {
+                    legend: {
+                        display: true, // Muestra la leyenda de la gráfica
+                        position: 'top' // Posición de la leyenda
+                    },
+                    title: {
+                        display: true, // Muestra el título de la gráfica
+                        text: 'Distribución de Comentarios', // Título de la gráfica
+                        font: {
+                            size: 24 // Tamaño de letra para el título
+                        },
+                        color: 'black' 
+                    },
+                }
+            }
+        });
+
+        // Ejecutar la función de actualización de estado
+        updateNursingStatus();
+        setInterval(updateNursingStatus, 60000); // Actualiza cada minuto
+    </script>
+</body>
+</html>
